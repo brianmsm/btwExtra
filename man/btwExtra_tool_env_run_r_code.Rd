@@ -12,7 +12,7 @@ btwExtra_tool_env_run_r_code(code, max_output_lines = 20L, `_intent` = "")
 \item{max_output_lines}{Maximum number of output lines to display; use \code{-1}
 to disable truncation. Defaults to 20.}
 
-\item{`_intent`}{Optional free-text intent (automatically injected when called
+\item{_intent}{Optional free-text intent (automatically injected when called
 via ellmer tools; can be left empty when calling directly).}
 }
 \description{

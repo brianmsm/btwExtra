@@ -9,10 +9,10 @@
 #' @param code String with the R code to execute.
 #' @param max_output_lines Maximum number of output lines to display; use `-1`
 #'   to disable truncation. Defaults to 20.
-#' @param `_intent` Optional free-text intent (automatically injected when called
+#' @param _intent Optional free-text intent (automatically injected when called
 #'   via ellmer tools; can be left empty when calling directly).
 #' @export
-btwExtra_tool_env_run_r_code <- function(code, max_output_lines, `_intent`) {}
+btwExtra_tool_env_run_r_code <- function(code, max_output_lines = 20L, `_intent` = "") {}
 
 btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
   .btwExtra_check_string(code)
