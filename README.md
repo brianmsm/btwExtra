@@ -37,20 +37,6 @@ Quick local check of the user-facing tool (outside of chat):
 
 ``` r
 res <- btwExtra::btwExtra_tool_env_run_r_code("library(dplyr); mtcars %>% filter(cyl == 6) %>% summarise(value = mean(hp))")
-```
-
-    ## 
-    ## Attaching package: 'dplyr'
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     filter, lag
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, setequal, union
-
-``` r
 res
 ```
 
@@ -85,7 +71,17 @@ plus everything from btwExtra:
 ``` toml
 args = [
   "-e",
-  "btwExtra::btwExtra_mcp_server(tools = c(btw::btw_tools(\"docs\"), btwExtra::btwExtra_tools()))"
+  "btwExtra::btwExtra_mcp_server(tools = c(btw::btw_tools("docs"), btwExtra::btwExtra_tools()))"
+]
+```
+
+Alternatively, you can call `btw::btw_mcp_server()` directly and pass
+the combined tools:
+
+``` toml
+args = [
+  "-e",
+  "btw::btw_mcp_server(tools = c(btw::btw_tools("docs"), btwExtra::btwExtra_tools()))"
 ]
 ```
 
@@ -107,3 +103,28 @@ Cursor/VS Code style JSON:
   }
 }
 ```
+
+### Very important: register the R session
+
+Any R session you want to use with MCP must call
+`mcptools::mcp_session()` so the MCP server can discover and attach to
+it. The easiest way is to add this call to your `.Rprofile` (user- or
+project-level), so it runs automatically when the session starts.
+
+Project-level `.Rprofile` (placed in the project root), or user-level
+`.Rprofile`:
+
+- Windows: `C:/Users/<USER>/Documents/.Rprofile`
+- macOS/Linux: `~/.Rprofile`
+
+Example contents:
+
+``` r
+if (interactive() && requireNamespace("mcptools", quietly = TRUE)) {
+  mcptools::mcp_session()
+}
+```
+
+This will automatically register any interactive R session with
+`mcptools`, making it available to MCP clients (e.g. Codex, ChatGPT,
+etc.).
