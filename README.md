@@ -1,2 +1,109 @@
+
 # btwExtra
-Extra MCP tools and helpers built on top of the {btw} package for connecting R sessions with LLMs
+
+Extra MCP tools and helpers built on top of the {btw} package for
+connecting R sessions with LLMs.
+
+## Installation (development)
+
+From GitHub:
+
+``` r
+remotes::install_github("brianmsm/btwExtra")
+```
+
+## Current tool
+
+- `btwExtra_tool_env_run_r_code`: escape hatch to run arbitrary R code
+  in the connected session. Emulates the R console (prints visible
+  values, skips assignments) and truncates output to 20 lines by
+  default; set `max_output_lines = -1` to disable truncation. Prefer the
+  more specific `btw_tool_*`/`btwExtra_tool_*` tools when available.
+
+## Example usage
+
+Register btw + btwExtra tools with an ellmer chat:
+
+``` r
+library(ellmer)
+ch <- ellmer::chat_anthropic()
+ch$register_tools(c(btw::btw_tools(), btwExtra::btwExtra_tools()))
+
+# Ask the model to use the run-R-code tool; output will be truncated by default.
+ch$respond("Run 1 + 1 in R and show the result.")
+```
+
+Quick local check of the user-facing tool (outside of chat):
+
+``` r
+res <- btwExtra::btwExtra_tool_env_run_r_code("library(dplyr); mtcars %>% filter(cyl == 6) %>% summarise(value = mean(hp))")
+```
+
+    ## 
+    ## Attaching package: 'dplyr'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
+
+``` r
+res
+```
+
+    ## <btwExtra::BtwExtraToolResult>
+    ##  @ value  : chr "     value\n1 122.2857"
+    ##  @ error  : NULL
+    ##  @ extra  :List of 1
+    ##  .. $ data:List of 5
+    ##  ..  ..$ status          : chr "ok"
+    ##  ..  ..$ console         : chr [1:2] "     value" "1 122.2857"
+    ##  ..  ..$ result_class    : chr NA
+    ##  ..  ..$ n_output_lines  : int 2
+    ##  ..  ..$ max_output_lines: int 20
+    ##  @ request: NULL
+
+## MCP configuration
+
+Use the combined btw + btwExtra tools:
+
+``` toml
+[mcp_servers.r-btw]
+command = "Rscript"
+args = [
+  "-e",
+  "btwExtra::btwExtra_mcp_server()"  # btw::btw_tools() + btwExtra::btwExtra_tools()
+]
+```
+
+If needed, you can pass a custom set of tools, e.g. only docs from btw
+plus everything from btwExtra:
+
+``` toml
+args = [
+  "-e",
+  "btwExtra::btwExtra_mcp_server(tools = c(btw::btw_tools(\"docs\"), btwExtra::btwExtra_tools()))"
+]
+```
+
+### MCP config for Claude Code or Cursor
+
+Claude CLI:
+
+``` bash
+claude mcp add -s "user" r-btw -- Rscript -e "btwExtra::btwExtra_mcp_server()"
+```
+
+Cursor/VS Code style JSON:
+
+``` json
+{
+  "r-btw": {
+    "command": "Rscript",
+    "args": ["-e", "btwExtra::btwExtra_mcp_server()"]
+  }
+}
+```
