@@ -1,9 +1,17 @@
 Package: btwExtra
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Extra MCP Tools for btw
+Version: 0.1.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    person(
+        given = "Brian Norman",
+        family = "Peña Calero",
+        role = c("aut", "cre"),
+        email = "brianmsm@gmail.com",
+        comment = c(ORCID = "0000-0002-1073-9306", Twitter = "@brianmsm")
+    )
+Description: Extra Model Context Protocol tools that extend {btw}, including
+    a run-R-code escape hatch and helpers registered for ellmer/btw MCP
+    servers to connect LLMs with running R sessions.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -17,3 +25,5 @@ Imports:
     purrr,
     rlang (>= 1.1.0),
     S7
+URL: https://github.com/brianmsm/btwExtra
+BugReports: https://github.com/brianmsm/btwExtra/issues
