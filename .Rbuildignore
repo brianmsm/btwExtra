@@ -1,2 +1,6 @@
 ^btwExtra\.Rproj$
 ^\.Rproj\.user$
+^\.vscode$
+^\.Rhistory$
+^AGENTS\.md$
+^README\.Rmd$

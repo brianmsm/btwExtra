@@ -9,6 +9,8 @@
 #' @param code String with the R code to execute.
 #' @param max_output_lines Maximum number of output lines to display; use `-1`
 #'   to disable truncation. Defaults to 20.
+#' @param `_intent` Optional free-text intent (automatically injected when called
+#'   via ellmer tools; can be left empty when calling directly).
 #' @export
 btwExtra_tool_env_run_r_code <- function(code, max_output_lines, `_intent`) {}
 
@@ -150,12 +152,12 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
         "",
         "Usage guidelines (for the model):",
         "- Prefer more specific tools when available:",
-        "  • For exploring the *structure* of a data frame/tibble,",
+        "  - For exploring the *structure* of a data frame/tibble,",
         "    `btw_tool_env_describe_data_frame` returns a compact summary",
         "    (types, basic stats, missingness). Use it instead of printing many",
         "    rows of a large data set with `run_r_code`.",
-        "  • Use `btw_tool_env_describe_environment` to list objects in the R session.",
-        "  • Use `btw_tool_files_*` to read/write files.",
+        "  - Use `btw_tool_env_describe_environment` to list objects in the R session.",
+        "  - Use `btw_tool_files_*` to read/write files.",
         "- Use this tool when you really need to run custom R logic or to glue steps",
         "  together in ways that existing tools cannot express directly.",
         "",
