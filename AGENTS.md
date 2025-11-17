@@ -20,6 +20,7 @@ This package extends the {btw} toolset with extra MCP tools. It is designed to b
 - **Validation**: use the local helpers (`.btwExtra_check_string`, `.btwExtra_check_character`, `.btwExtra_check_number`). Avoid reaching into `btw:::` internals.
 - **File order**: helpers and registry are in `00-...` / `01-...` to load before dependent files during `load_all()`. You can also enforce order with `@include`.
 - **README source**: edit `README.Rmd` and render to `README.md` to keep both in sync.
+- **README workflow**: never edit `README.md` directly. Apply changes to `README.Rmd` and render. If `README.Rmd` differs from the agent’s changes, assume the user modified it manually; preserve those manual edits and/or ask the user before overwriting.
 
 ## MCP defaults
 - Use `btwExtra_default_tools()` to combine `btw::btw_tools()` and `btwExtra_tools()`.
