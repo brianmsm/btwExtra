@@ -56,7 +56,7 @@ If needed, you can pass a custom set of tools, e.g. only docs from btw plus ever
 ```toml
 args = [
   "-e",
-  "btwExtra::btwExtra_mcp_server(tools = c(btw::btw_tools("docs"), btwExtra::btwExtra_tools()))"
+  "btwExtra::btwExtra_mcp_server(tools = c(btw::btw_tools(\"docs\"), btwExtra::btwExtra_tools()))"
 ]
 ```
 
@@ -65,7 +65,7 @@ Alternatively, you can call `btw::btw_mcp_server()` directly and pass the combin
 ```toml
 args = [
   "-e",
-  "btw::btw_mcp_server(tools = c(btw::btw_tools("docs"), btwExtra::btwExtra_tools()))"
+  "btw::btw_mcp_server(tools = c(btw::btw_tools(\"docs\"), btwExtra::btwExtra_tools()))"
 ]
 ```
 
