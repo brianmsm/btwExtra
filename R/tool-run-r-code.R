@@ -116,16 +116,13 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
   if (n_lines > max_output_lines) {
     preview <- lines[seq_len(max_output_lines)]
 
+    notice <- .btwExtra_truncation_notice()
+
     value_text <- paste0(
       "R output has ", n_lines, " lines. Showing the first ",
       max_output_lines, " lines.\n\n",
       paste(preview, collapse = "\n"),
-      "\n\nIf you need the full output for reasoning, re-run this tool with ",
-      "`max_output_lines = -1` (no truncation) or with a larger value. ",
-      "For large model summaries (e.g. lavaan, mirt, lm), consider using ",
-      "more focused calls (e.g. `summary(fit, fit.measures = TRUE)`, ",
-      "`coef(fit)`, or extracting specific components) instead of the ",
-      "entire summary."
+      if (!is.null(notice)) paste0("\n\n", notice) else ""
     )
   } else {
     value_text <- paste(lines, collapse = "\n")

@@ -52,6 +52,13 @@ res
     ##  ..  ..$ max_output_lines: int 20
     ##  @ request: NULL
 
+Truncation notice: by default, the “long output truncated” guidance is
+shown once per session. To always show it:
+
+``` r
+options(btwExtra.show_truncation_notice_once = FALSE)
+```
+
 ## MCP configuration
 
 Use the combined btw + btwExtra tools:

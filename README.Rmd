@@ -38,6 +38,12 @@ res <- btwExtra::btwExtra_tool_env_run_r_code("library(dplyr); mtcars %>% filter
 res
 ```
 
+Truncation notice: by default, the “long output truncated” guidance is shown once per session. To always show it:
+
+```r
+options(btwExtra.show_truncation_notice_once = FALSE)
+```
+
 ## MCP configuration
 
 Use the combined btw + btwExtra tools:
