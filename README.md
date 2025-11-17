@@ -71,7 +71,7 @@ plus everything from btwExtra:
 ``` toml
 args = [
   "-e",
-  "btwExtra::btwExtra_mcp_server(tools = c(btw::btw_tools(\"docs\"), btwExtra::btwExtra_tools()))"
+  "btwExtra::btwExtra_mcp_server(tools = c(btw::btw_tools('docs'), btwExtra::btwExtra_tools()))"
 ]
 ```
 
@@ -81,7 +81,7 @@ the combined tools:
 ``` toml
 args = [
   "-e",
-  "btw::btw_mcp_server(tools = c(btw::btw_tools(\"docs\"), btwExtra::btwExtra_tools()))"
+  "btw::btw_mcp_server(tools = c(btw::btw_tools('docs'), btwExtra::btwExtra_tools()))"
 ]
 ```
 
