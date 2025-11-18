@@ -27,3 +27,26 @@ test_that("run_r_code returns an error payload on failure", {
   expect_match(res@value, "Error executing R code")
   expect_equal(res@extra$data$status, "error")
 })
+
+test_that("run_r_code captures a plot as base64 media", {
+  res <- btwExtra_tool_env_run_r_code("plot(1:3)")
+  plot_data <- res@extra$data$plot
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_type(plot_data$data, "character")
+  expect_true(nchar(plot_data$data) > 0)
+  expect_equal(plot_data$mime, "image/png")
+  expect_match(res@value, "Plot captured \\(PNG\\)")
+
+  display <- res@extra$display$content
+  expect_equal(display[[2]]$type, "media")
+  expect_equal(display[[2]]$mediaType, "image/png")
+})
+
+test_that("run_r_code can skip plot capture when requested", {
+  res <- btwExtra_tool_env_run_r_code("plot(1:3)", capture_plot = FALSE)
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_false(any(grepl("Plot captured", res@value)))
+  expect_null(res@extra$data$plot)
+})

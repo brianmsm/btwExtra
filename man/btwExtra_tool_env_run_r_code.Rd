@@ -4,13 +4,33 @@
 \alias{btwExtra_tool_env_run_r_code}
 \title{Tool: Run arbitrary R code}
 \usage{
-btwExtra_tool_env_run_r_code(code, max_output_lines = 20L, `_intent` = "")
+btwExtra_tool_env_run_r_code(
+  code,
+  max_output_lines = 20L,
+  capture_plot = TRUE,
+  plot_width = 800,
+  plot_height = 600,
+  plot_res = 96,
+  `_intent` = ""
+)
 }
 \arguments{
 \item{code}{String with the R code to execute.}
 
 \item{max_output_lines}{Maximum number of output lines to display; use \code{-1}
 to disable truncation. Defaults to 20.}
+
+\item{capture_plot}{Whether to capture a plot (PNG) produced by the code.
+Defaults to \code{TRUE}.}
+
+\item{plot_width}{Width (in pixels) of the PNG device opened to capture the
+plot. Defaults to 800.}
+
+\item{plot_height}{Height (in pixels) of the PNG device opened to capture
+the plot. Defaults to 600.}
+
+\item{plot_res}{Resolution (in DPI) of the PNG device opened to capture the
+plot. Defaults to 96.}
 
 \item{_intent}{Optional free-text intent (automatically injected when called
 via ellmer tools; can be left empty when calling directly).}

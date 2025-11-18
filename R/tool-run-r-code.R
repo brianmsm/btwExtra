@@ -9,20 +9,74 @@
 #' @param code String with the R code to execute.
 #' @param max_output_lines Maximum number of output lines to display; use `-1`
 #'   to disable truncation. Defaults to 20.
+#' @param capture_plot Whether to capture a plot (PNG) produced by the code.
+#'   Defaults to `TRUE`.
+#' @param plot_width Width (in pixels) of the PNG device opened to capture the
+#'   plot. Defaults to 800.
+#' @param plot_height Height (in pixels) of the PNG device opened to capture
+#'   the plot. Defaults to 600.
+#' @param plot_res Resolution (in DPI) of the PNG device opened to capture the
+#'   plot. Defaults to 96.
 #' @param _intent Optional free-text intent (automatically injected when called
 #'   via ellmer tools; can be left empty when calling directly).
 #' @export
-btwExtra_tool_env_run_r_code <- function(code, max_output_lines = 20L, `_intent` = "") {}
+btwExtra_tool_env_run_r_code <- function(code,
+                                         max_output_lines = 20L,
+                                         capture_plot = TRUE,
+                                         plot_width = 800,
+                                         plot_height = 600,
+                                         plot_res = 96,
+                                         `_intent` = "") {}
 
-btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
+btwExtra_tool_env_run_r_code_impl <- function(code,
+                                              max_output_lines = 20L,
+                                              capture_plot = TRUE,
+                                              plot_width = 800,
+                                              plot_height = 600,
+                                              plot_res = 96) {
   .btwExtra_check_string(code)
   if (!is.null(max_output_lines)) {
     .btwExtra_check_number(max_output_lines)
+  }
+  if (!rlang::is_bool(capture_plot)) {
+    cli::cli_abort("{.arg capture_plot} must be TRUE or FALSE.")
+  }
+  if (isTRUE(capture_plot)) {
+    .btwExtra_check_number(plot_width)
+    .btwExtra_check_number(plot_height)
+    .btwExtra_check_number(plot_res)
   }
 
   exprs <- NULL
   last_val <- NULL
   out <- character()
+  plot_file <- NULL
+  plot_device <- NULL
+
+  close_plot_device <- function() {
+    if (is.null(plot_device)) {
+      return(invisible())
+    }
+
+    active_devices <- grDevices::dev.list()
+
+    if (is.null(active_devices) || length(active_devices) == 0) {
+      return(invisible())
+    }
+
+    if (plot_device %in% active_devices) {
+      try(utils::capture.output(grDevices::dev.off(plot_device)), silent = TRUE)
+    }
+  }
+
+  cleanup_plot_file <- function() {
+    if (!is.null(plot_file) && fs::file_exists(plot_file)) {
+      try(unlink(plot_file), silent = TRUE)
+    }
+  }
+
+  on.exit(cleanup_plot_file(), add = TRUE)
+  on.exit(close_plot_device(), add = TRUE)
 
   res <- tryCatch(
     {
@@ -34,6 +88,17 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
           console = character(),
           result_class = NA_character_
         ))
+      }
+
+      if (isTRUE(capture_plot)) {
+        plot_file <- as.character(fs::file_temp("btwExtra-plot-", ext = ".png"))
+        grDevices::png(
+          filename = plot_file,
+          width = plot_width,
+          height = plot_height,
+          res = plot_res
+        )
+        plot_device <- grDevices::dev.cur()
       }
 
       out <- utils::capture.output({
@@ -70,6 +135,21 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
     }
   )
 
+  if (isTRUE(capture_plot)) {
+    close_plot_device()
+  }
+
+  plot_data <- NULL
+
+  if (isTRUE(capture_plot)) {
+    plot_data <- .btwExtra_plot_payload(
+      path = plot_file,
+      width = plot_width,
+      height = plot_height,
+      res = plot_res
+    )
+  }
+
   if (!identical(res$status, "ok")) {
     msg_lines <- c(
       paste0("Error executing R code: ", res$error_message),
@@ -77,10 +157,12 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
     )
 
     value_text <- paste(msg_lines, collapse = "\n")
+    value_text <- .btwExtra_append_plot_hint(value_text, plot_data)
 
     return(btwExtra_tool_result(
       value = value_text,
-      data  = res
+      data  = c(res, list(plot = plot_data)),
+      display = .btwExtra_plot_display(value_text, plot_data)
     ))
   }
 
@@ -88,10 +170,12 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
 
   if (length(lines) == 0L) {
     value_text <- "R code executed successfully (no visible output)."
+    value_text <- .btwExtra_append_plot_hint(value_text, plot_data)
 
     return(btwExtra_tool_result(
       value = value_text,
-      data  = res
+      data  = c(res, list(plot = plot_data)),
+      display = .btwExtra_plot_display(value_text, plot_data)
     ))
   }
 
@@ -103,13 +187,16 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
 
   if (max_output_lines <= 0L) {
     value_text <- paste(lines, collapse = "\n")
+    value_text <- .btwExtra_append_plot_hint(value_text, plot_data)
 
     return(btwExtra_tool_result(
       value = value_text,
       data  = c(res, list(
         n_output_lines   = n_lines,
-        max_output_lines = max_output_lines
-      ))
+        max_output_lines = max_output_lines,
+        plot             = plot_data
+      )),
+      display = .btwExtra_plot_display(value_text, plot_data)
     ))
   }
 
@@ -128,12 +215,61 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
     value_text <- paste(lines, collapse = "\n")
   }
 
+  value_text <- .btwExtra_append_plot_hint(value_text, plot_data)
+
   btwExtra_tool_result(
     value = value_text,
     data  = c(res, list(
       n_output_lines   = n_lines,
-      max_output_lines = max_output_lines
-    ))
+      max_output_lines = max_output_lines,
+      plot             = plot_data
+    )),
+    display = .btwExtra_plot_display(value_text, plot_data)
+  )
+}
+
+.btwExtra_plot_payload <- function(path, width, height, res) {
+  if (is.null(path) || !fs::file_exists(path)) {
+    return(NULL)
+  }
+
+  info <- fs::file_info(path)
+
+  if (is.na(info$size) || info$size <= 0) {
+    return(NULL)
+  }
+
+  list(
+    data = base64enc::base64encode(path),
+    mime = "image/png",
+    width = width,
+    height = height,
+    res = res
+  )
+}
+
+.btwExtra_append_plot_hint <- function(value_text, plot_data) {
+  if (is.null(plot_data)) {
+    return(value_text)
+  }
+
+  paste(value_text, "Plot captured (PNG)", sep = "\n\n")
+}
+
+.btwExtra_plot_display <- function(value_text, plot_data) {
+  if (is.null(plot_data)) {
+    return(NULL)
+  }
+
+  list(
+    content = list(
+      list(type = "text", text = value_text),
+      list(
+        type = "media",
+        data = plot_data$data,
+        mediaType = plot_data$mime
+      )
+    )
   )
 }
 
@@ -180,6 +316,22 @@ btwExtra_tool_env_run_r_code_impl <- function(code, max_output_lines = 20L) {
         ),
         max_output_lines = ellmer::type_integer(
           "Maximum number of output lines to display. Use -1 to disable truncation.",
+          required = FALSE
+        ),
+        capture_plot = ellmer::type_boolean(
+          "Capture a plot as PNG (base64) when the code produces one. Defaults to TRUE.",
+          required = FALSE
+        ),
+        plot_width = ellmer::type_integer(
+          "PNG width in pixels when capturing a plot.",
+          required = FALSE
+        ),
+        plot_height = ellmer::type_integer(
+          "PNG height in pixels when capturing a plot.",
+          required = FALSE
+        ),
+        plot_res = ellmer::type_integer(
+          "PNG resolution (DPI) when capturing a plot.",
           required = FALSE
         )
       )
