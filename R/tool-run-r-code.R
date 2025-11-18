@@ -319,6 +319,7 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
       - Large outputs are truncated to `max_output_lines` lines by default to save tokens and context. Use `max_output_lines = -1` only if you truly need the full output (e.g., for a short model summary).
       - Avoid repeatedly printing the same large object; print it once and then reason from that result, or request more targeted summaries instead.
       - If `capture_plot = TRUE` and a plot is produced, the result includes an image payload with both base64-encoded PNG data (`extra$data$plot$data`) and a temporary file path to the PNG (`extra$data$plot$path`). Use whichever form your client supports (e.g., render base64 or open the file at `path`). 
+      - If the user asks you to display the image, prefer loading it from the temporary path with `magick::image_read(<path>)` and describe it; avoid relying on base64 in clients that do not render images.
       ',
       annotations = ellmer::tool_annotations(
         title = "Run R Code",

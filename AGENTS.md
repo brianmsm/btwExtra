@@ -26,9 +26,20 @@ This package extends the {btw} toolset with extra MCP tools. It is designed to b
 - Use `btwExtra_default_tools()` to combine `btw::btw_tools()` and `btwExtra_tools()`.
 - `btwExtra_mcp_server()` wraps `btw::btw_mcp_server(tools = btwExtra_default_tools())`.
 
+## Plots/HTML output strategy (planned)
+- Observed pattern (posit databots extension): when executing code, it calls a runtime-level plot capture (e.g., `getCurrentPlotUri()`), returns `{data: <png-uri>, mimeType: "image/png"}`, and tool results support a “media” part (base64 + mime).
+- btwExtra plan:
+  - Extend `btwExtra_tool_env_run_r_code_impl()` with optional plot capture (`capture_plot`, `plot_width/height/res`). Default: capture plots.
+  - Capture via R device: open `png()` to a temp file, eval code, `dev.off()` on exit, read PNG, base64-encode, attach as `extra$data$plot` with `mime = "image/png"`, and add a “media” content entry for clients that render images.
+  - Add a brief textual hint (“Plot captured (PNG)”) when a plot is present; keep text truncation behavior unchanged.
+  - If `capture_plot = FALSE` or no plot is drawn, omit plot data.
+  - Testing: simple plot produces non-empty PNG base64; `capture_plot = FALSE` omits plot; errors handled gracefully.
+  - Future: similar pattern for HTML outputs (gt/htmlwidgets): capture rendered HTML and optionally a PNG snapshot for media-capable clients.
+
 ## Style and docs
 - Keep documentation and comments in English.
 - Descriptions should include “when to use” and “cautions” where relevant, matching btw’s style.
+- Tool descriptions should be written as literal markdown strings (no `paste()`), with explicit newlines. Use markdown headings (e.g., `## Usage guidelines`, `## Output policy`) to improve rendering in clients.
 - Examples should be minimal and deterministic.
 
 ## Dependencies
