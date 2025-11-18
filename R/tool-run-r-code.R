@@ -51,6 +51,7 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
   last_val <- NULL
   out <- character()
   plot_file <- NULL
+  cleanup_plot <- TRUE
   plot_device <- NULL
 
   close_plot_device <- function() {
@@ -70,13 +71,17 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
   }
 
   cleanup_plot_file <- function() {
+    if (!isTRUE(cleanup_plot)) {
+      return(invisible())
+    }
+
     if (!is.null(plot_file) && fs::file_exists(plot_file)) {
       try(unlink(plot_file), silent = TRUE)
     }
   }
 
-  on.exit(cleanup_plot_file(), add = TRUE)
   on.exit(close_plot_device(), add = TRUE)
+  on.exit(cleanup_plot_file(), add = TRUE)
 
   res <- tryCatch(
     {
@@ -90,8 +95,20 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
         ))
       }
 
+      active_devices_initial <- grDevices::dev.list()
+
       if (isTRUE(capture_plot)) {
         plot_file <- as.character(fs::file_temp("btwExtra-plot-", ext = ".png"))
+        cleanup_plot <- FALSE
+        grDevices::png(
+          filename = plot_file,
+          width = plot_width,
+          height = plot_height,
+          res = plot_res
+        )
+        plot_device <- grDevices::dev.cur()
+      } else if (is.null(active_devices_initial)) {
+        plot_file <- as.character(fs::file_temp("btwExtra-plot-nocapture-", ext = ".png"))
         grDevices::png(
           filename = plot_file,
           width = plot_width,
@@ -242,6 +259,7 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
   list(
     data = base64enc::base64encode(path),
     mime = "image/png",
+    path = path,
     width = width,
     height = height,
     res = res
@@ -253,7 +271,14 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
     return(value_text)
   }
 
-  paste(value_text, "Plot captured (PNG)", sep = "\n\n")
+  path <- plot_data$path %||% ""
+  path_hint <- if (nzchar(path)) {
+    sprintf("Plot captured (PNG) (saved at [%s](file://%s))", path, path)
+  } else {
+    "Plot captured (PNG)"
+  }
+
+  paste(value_text, path_hint, sep = "\n\n")
 }
 
 .btwExtra_plot_display <- function(value_text, plot_data) {
@@ -280,29 +305,21 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
     ellmer::tool(
       btwExtra_tool_env_run_r_code_impl,
       name = "btwExtra_tool_env_run_r_code",
-      description = paste(
-        "Escape hatch for executing arbitrary R code in the connected R session.",
-        "",
-        "Usage guidelines (for the model):",
-        "- Prefer more specific tools when available:",
-        "  - For exploring the *structure* of a data frame/tibble,",
-        "    `btw_tool_env_describe_data_frame` returns a compact summary",
-        "    (types, basic stats, missingness). Use it instead of printing many",
-        "    rows of a large data set with `run_r_code`.",
-        "  - Use `btw_tool_env_describe_environment` to list objects in the R session.",
-        "  - Use `btw_tool_files_*` to read/write files.",
-        "- Use this tool when you really need to run custom R logic or to glue steps",
-        "  together in ways that existing tools cannot express directly.",
-        "",
-        "Output policy:",
-        "- The tool emulates the R console: non-assignment expressions with a visible",
-        "  value are printed automatically (like running them at the R prompt).",
-        "- Large outputs are truncated to `max_output_lines` lines by default to save",
-        "  tokens and context. Use `max_output_lines = -1` only if you truly need the",
-        "  full output (e.g., for a short model summary).",
-        "- Avoid repeatedly printing the same large object; print it once and then",
-        "  reason from that result, or request more targeted summaries instead."
-      ),
+      description = 'Escape hatch for executing arbitrary R code in the connected R session.
+      
+      ## Usage guidelines (for the model)
+      - Prefer more specific tools when available:
+        - For exploring the *structure* of a data frame/tibble, `btw_tool_env_describe_data_frame` returns a compact summary (types, basic stats, missingness). Use it instead of printing many rows of a large data set with `run_r_code`.
+        - Use `btw_tool_env_describe_environment` to list objects in the R session.
+        - Use `btw_tool_files_*` to read/write files.
+      - Use this tool when you really need to run custom R logic or to glue steps together in ways that existing tools cannot express directly.
+      
+      ## Output policy
+      - The tool emulates the R console: non-assignment expressions with a visible value are printed automatically (like running them at the R prompt).
+      - Large outputs are truncated to `max_output_lines` lines by default to save tokens and context. Use `max_output_lines = -1` only if you truly need the full output (e.g., for a short model summary).
+      - Avoid repeatedly printing the same large object; print it once and then reason from that result, or request more targeted summaries instead.
+      - If `capture_plot = TRUE` and a plot is produced, the result includes an image payload with both base64-encoded PNG data (`extra$data$plot$data`) and a temporary file path to the PNG (`extra$data$plot$path`). Use whichever form your client supports (e.g., render base64 or open the file at `path`). 
+      ',
       annotations = ellmer::tool_annotations(
         title = "Run R Code",
         read_only_hint = FALSE,
@@ -319,7 +336,11 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
           required = FALSE
         ),
         capture_plot = ellmer::type_boolean(
-          "Capture a plot as PNG (base64) when the code produces one. Defaults to TRUE.",
+          paste(
+            "Capture a plot when the code produces one. The result exposes both a",
+            "base64-encoded PNG (`extra$data$plot$data`) and a temporary file path",
+            "(`extra$data$plot$path`). Defaults to TRUE."
+          ),
           required = FALSE
         ),
         plot_width = ellmer::type_integer(

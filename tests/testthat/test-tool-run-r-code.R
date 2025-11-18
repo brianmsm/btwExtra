@@ -36,6 +36,7 @@ test_that("run_r_code captures a plot as base64 media", {
   expect_type(plot_data$data, "character")
   expect_true(nchar(plot_data$data) > 0)
   expect_equal(plot_data$mime, "image/png")
+  expect_true(fs::file_exists(plot_data$path))
   expect_match(res@value, "Plot captured \\(PNG\\)")
 
   display <- res@extra$display$content
@@ -44,9 +45,12 @@ test_that("run_r_code captures a plot as base64 media", {
 })
 
 test_that("run_r_code can skip plot capture when requested", {
+  if (file.exists("Rplots.pdf")) file.remove("Rplots.pdf")
+
   res <- btwExtra_tool_env_run_r_code("plot(1:3)", capture_plot = FALSE)
 
   expect_true(any(grepl("BtwExtraToolResult", class(res))))
   expect_false(any(grepl("Plot captured", res@value)))
   expect_null(res@extra$data$plot)
+  expect_false(file.exists("Rplots.pdf"))
 })
