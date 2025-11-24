@@ -265,23 +265,51 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
 }
 
 .btwExtra_extract_reactable <- function(x) {
-  if (!inherits(x, "reactable_htmlwidget")) {
+  if (!(inherits(x, "reactable_htmlwidget") || inherits(x, "reactable"))) {
     return(NULL)
   }
 
-  data <- tryCatch(
-    x[["x"]][["data"]],
-    error = function(e) NULL
-  )
+  data <- NULL
+
+  data <- tryCatch(x[["x"]][["data"]], error = function(e) NULL)
   if (is.null(data)) {
-    data <- tryCatch(
-      x[["x"]][["data_raw"]],
+    data <- tryCatch(x[["x"]][["data_raw"]], error = function(e) NULL)
+  }
+
+  if (is.null(data)) {
+    data_json <- tryCatch(
+      x[["x"]][["tag"]][["attribs"]][["data"]],
       error = function(e) NULL
     )
+    if (is.null(data_json)) {
+      data_json <- tryCatch(
+        x[["tag"]][["attribs"]][["data"]],
+        error = function(e) NULL
+      )
+    }
+    if (!is.null(data_json)) {
+      if (!requireNamespace("jsonlite", quietly = TRUE)) {
+        cli::cli_abort("Package {.pkg jsonlite} is required to parse reactable data.")
+      }
+      data <- tryCatch(
+        jsonlite::fromJSON(data_json),
+        error = function(e) NULL
+      )
+    }
   }
 
   if (is.data.frame(data)) {
     return(list(data = data, method = "reactable data"))
+  }
+
+  if (is.list(data)) {
+    df <- tryCatch(
+      as.data.frame(data),
+      error = function(e) NULL
+    )
+    if (is.data.frame(df)) {
+      return(list(data = df, method = "reactable data"))
+    }
   }
 
   NULL

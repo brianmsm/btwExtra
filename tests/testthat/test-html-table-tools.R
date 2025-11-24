@@ -90,3 +90,25 @@ test_that("html_table_screenshot captures a PNG", {
   expect_equal(display[[2]]$type, "media")
   expect_equal(display[[2]]$mediaType, "image/png")
 })
+
+test_that("html_table_to_df extracts reactable data from embedded JSON", {
+  skip_if_not_installed("jsonlite")
+
+  df <- head(mtcars)
+  reactable_like <- list(
+    x = list(tag = list(attribs = list(data = jsonlite::toJSON(df)))),
+    tag = list(attribs = list(data = jsonlite::toJSON(df)))
+  )
+  class(reactable_like) <- c("reactable", "htmlwidget")
+
+  assign("tab_reactable_like", reactable_like, envir = .GlobalEnv)
+  on.exit(rm("tab_reactable_like", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_to_df("tab_reactable_like")
+  extracted <- res@extra$data$data
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(res@extra$data$method, "reactable data")
+  expect_equal(dim(extracted), dim(df))
+  expect_equal(colnames(extracted), colnames(df))
+})
