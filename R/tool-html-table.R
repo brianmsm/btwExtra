@@ -7,7 +7,7 @@
 #' not styling. For styling/layout, use the screenshot tool instead.
 #' @importFrom gt as_raw_html
 #' @importFrom gtsummary as_tibble as_gt
-#' 
+#'
 #' @param object_name Name of the object in the current R session that holds
 #'   the HTML table (e.g. `\"tbl_gt\"`).
 #' @param max_preview_rows Maximum number of rows to show in the textual
@@ -152,7 +152,6 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
 #'
 #' @return A list with `data` and `method` entries.
 #' @keywords internal
-#' @export
 btwExtra_table_df <- function(x, ...) {
   UseMethod("btwExtra_table_df")
 }
