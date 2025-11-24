@@ -87,6 +87,10 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
   .btwExtra_check_string(object_name)
   .btwExtra_check_string(selector)
 
+  if (rlang::is_string(selector) && identical(selector, "")) {
+    selector <- "table"
+  }
+
   obj <- .btwExtra_get_object(object_name)
 
   html_file <- .btwExtra_render_table_html(obj)
@@ -450,6 +454,7 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
       - You care about table styling/layout, not just the raw values.
       - Combine with `btwExtra_tool_html_table_to_df` when you also need the underlying data.
       - Re-run after adjusting the object via `run_r_code` if you change formatting.
+      - Omit `selector` to use the default `table` element; only pass a CSS selector when you need a specific element, and do not pass an empty string.
 
       ## What it returns
       - A short text note plus:
