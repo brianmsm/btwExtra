@@ -96,27 +96,11 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
   html_file <- .btwExtra_render_table_html(obj)
   png_file <- as.character(fs::file_temp("btwExtra-table-", ext = ".png"))
 
-  screenshot_ok <- tryCatch(
-    {
-      if (!requireNamespace("webshot2", quietly = TRUE)) {
-        cli::cli_abort("Package {.pkg webshot2} is required to capture screenshots.")
-      }
-
-      webshot2::webshot(
-        url = html_file,
-        file = png_file,
-        selector = selector
-      )
-      TRUE
-    },
-    error = function(e) {
-      cli::cli_abort("Could not capture screenshot: {conditionMessage(e)}")
-    }
+  capture_result <- .btwExtra_capture_table_screenshot(
+    html_file = html_file,
+    png_file = png_file,
+    selector = selector
   )
-
-  if (!isTRUE(screenshot_ok) || !fs::file_exists(png_file)) {
-    cli::cli_abort("Screenshot file was not created.")
-  }
 
   img_payload <- .btwExtra_plot_payload(
     path = png_file,
@@ -135,7 +119,8 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
     data = list(
       object_name = object_name,
       classes = class(obj),
-      selector = selector,
+      selector = capture_result$selector_used,
+      selector_fallback = capture_result$fallback_used,
       html_file = html_file,
       screenshot = img_payload
     ),
@@ -468,6 +453,47 @@ btwExtra_table_df.flextable <- function(x, ...) {
   html_file
 }
 
+.btwExtra_capture_table_screenshot <- function(html_file, png_file, selector) {
+  if (!requireNamespace("webshot2", quietly = TRUE)) {
+    cli::cli_abort("Package {.pkg webshot2} is required to capture screenshots.")
+  }
+
+  attempt <- function(sel) {
+    suppressWarnings(
+      webshot2::webshot(
+        url = html_file,
+        file = png_file,
+        selector = sel
+      )
+    )
+    fs::file_exists(png_file)
+  }
+
+  fallback_used <- FALSE
+  selector_used <- selector
+
+  ok <- tryCatch(attempt(selector), error = function(e) e)
+
+  if (inherits(ok, "error") || isFALSE(ok)) {
+    if (!is.null(selector)) {
+      fallback_used <- TRUE
+      selector_used <- NULL
+      ok <- tryCatch(attempt(NULL), error = function(e) e)
+    }
+  }
+
+  if (inherits(ok, "error") || isFALSE(ok) || !fs::file_exists(png_file)) {
+    cli::cli_abort(
+      c(
+        "Could not capture screenshot.",
+        "i" = if (inherits(ok, "error")) conditionMessage(ok) else NULL
+      )
+    )
+  }
+
+  list(selector_used = selector_used %||% "full-page", fallback_used = fallback_used)
+}
+
 .btwExtra_add_to_tools(
   name = "btwExtra_tool_html_table_to_df",
   group = "env",
@@ -525,6 +551,7 @@ btwExtra_table_df.flextable <- function(x, ...) {
       - Combine with `btwExtra_tool_html_table_to_df` when you also need the underlying data.
       - Re-run after adjusting the object via `run_r_code` if you change formatting.
       - Omit `selector` to use the default `table` element; only pass a CSS selector when you need a specific element, and do not pass an empty string.
+      - If the selector is invalid or not found, the tool falls back to a full-page capture.
 
       ## What it returns
       - A short text note plus:
