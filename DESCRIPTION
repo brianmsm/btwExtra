@@ -1,6 +1,6 @@
 Package: btwExtra
 Title: Extra MCP Tools for btw
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     person(
         given = "Brian Norman",
@@ -23,10 +23,14 @@ Imports:
     ellmer,
     fs,
     htmltools,
+    rvest,
     purrr,
     rlang (>= 1.1.0),
-    S7
+    S7,
+    webshot2
 Suggests:
+    chromote,
+    htmlwidgets,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 URL: https://github.com/brianmsm/btwExtra

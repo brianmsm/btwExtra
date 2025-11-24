@@ -313,6 +313,7 @@ btwExtra_tool_env_run_r_code_impl <- function(code,
         - Use `btw_tool_env_describe_environment` to list objects in the R session.
         - Use `btw_tool_files_*` to read/write files.
       - Use this tool when you really need to run custom R logic or to glue steps together in ways that existing tools cannot express directly.
+      - If the object to inspect is (or could be) a plot (e.g. ggplot, base plot, lattice), call this with `capture_plot = TRUE` to render and capture the PNG. Then use the temporary PNG path in `extra$data$plot$path` with your client\'s image-viewing tool to visualize and describe the plot instead of printing its structure.
       
       ## Output policy
       - The tool emulates the R console: non-assignment expressions with a visible value are printed automatically (like running them at the R prompt).
