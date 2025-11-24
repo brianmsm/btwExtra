@@ -173,3 +173,48 @@ test_that("html_table_to_df extracts flextable dataset", {
   expect_equal(nrow(df), 6)
   expect_true(all(colnames(df) %in% colnames(mtcars)))
 })
+
+test_that("html_table_to_df extracts rhandsontable data", {
+  skip_if_not_installed("rhandsontable")
+
+  rht <- rhandsontable::rhandsontable(head(mtcars))
+  assign("tab_rhandsontable_test", rht, envir = .GlobalEnv)
+  on.exit(rm("tab_rhandsontable_test", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_to_df("tab_rhandsontable_test")
+  df <- res@extra$data$data
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(res@extra$data$method, "rhandsontable data")
+  expect_equal(nrow(df), 6)
+})
+
+test_that("html_table_to_df extracts tinytable via to_data_frame", {
+  skip_if_not_installed("tinytable")
+
+  tt <- tinytable::tt(head(mtcars))
+  assign("tab_tinytable_test", tt, envir = .GlobalEnv)
+  on.exit(rm("tab_tinytable_test", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_to_df("tab_tinytable_test")
+  df <- res@extra$data$data
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(res@extra$data$method, "tinytable data slot")
+  expect_equal(nrow(df), 6)
+})
+
+test_that("html_table_to_df handles htmlTable objects via HTML parse", {
+  skip_if_not_installed("htmlTable")
+
+  tab <- htmlTable::htmlTable(head(mtcars[, 1:3]))
+  assign("tab_htmlTable_test", tab, envir = .GlobalEnv)
+  on.exit(rm("tab_htmlTable_test", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_to_df("tab_htmlTable_test")
+  df <- res@extra$data$data
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(res@extra$data$method, "htmlTable via html")
+  expect_gt(nrow(df), 0)
+})

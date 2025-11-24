@@ -225,6 +225,30 @@ btwExtra_table_df.flextable <- function(x, ...) {
   NextMethod()
 }
 
+btwExtra_table_df.rhandsontable <- function(x, ...) {
+  res <- .btwExtra_extract_rhandsontable(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
+}
+
+btwExtra_table_df.tinytable <- function(x, ...) {
+  res <- .btwExtra_extract_tinytable(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
+}
+
+btwExtra_table_df.htmlTable <- function(x, ...) {
+  res <- .btwExtra_extract_htmltable(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
+}
+
 .btwExtra_extract_gt_tbl <- function(x) {
   if (!inherits(x, "gt_tbl")) {
     return(NULL)
@@ -362,6 +386,59 @@ btwExtra_table_df.flextable <- function(x, ...) {
   NULL
 }
 
+.btwExtra_extract_rhandsontable <- function(x) {
+  if (!inherits(x, "rhandsontable")) {
+    return(NULL)
+  }
+
+  data <- tryCatch(x[["x"]][["data"]], error = function(e) NULL)
+
+  if (inherits(data, "json") && length(data) == 1) {
+    if (!requireNamespace("jsonlite", quietly = TRUE)) {
+      cli::cli_abort("Package {.pkg jsonlite} is required to parse rhandsontable data.")
+    }
+    data <- tryCatch(jsonlite::fromJSON(data), error = function(e) NULL)
+  }
+
+  if (is.data.frame(data)) {
+    return(list(data = data, method = "rhandsontable data"))
+  }
+
+  data <- tryCatch(x[["x"]][["dataDF"]], error = function(e) NULL)
+  if (is.data.frame(data)) {
+    return(list(data = data, method = "rhandsontable data"))
+  }
+
+  NULL
+}
+
+.btwExtra_extract_tinytable <- function(x) {
+  if (!inherits(x, "tinytable")) {
+    return(NULL)
+  }
+
+  data_slot <- tryCatch(x@data, error = function(e) NULL)
+  if (is.data.frame(data_slot)) {
+    return(list(data = data_slot, method = "tinytable data slot"))
+  }
+
+  NULL
+}
+
+.btwExtra_extract_htmltable <- function(x) {
+  if (!inherits(x, "htmlTable")) {
+    return(NULL)
+  }
+
+  html_res <- .btwExtra_extract_table_via_html(x)
+  if (!is.null(html_res)) {
+    html_res$method <- "htmlTable via html"
+    return(html_res)
+  }
+
+  NULL
+}
+
 .btwExtra_extract_table_via_html <- function(x) {
   html_file <- tryCatch(
     .btwExtra_render_table_html(x),
@@ -427,6 +504,28 @@ btwExtra_table_df.flextable <- function(x, ...) {
       error = function(e) cli::cli_abort("Could not render flextable to HTML: {conditionMessage(e)}")
     )
     return(html_file)
+  }
+
+  # tinytable: use tt_save to HTML
+  if (inherits(x, "tinytable")) {
+    if (!requireNamespace("tinytable", quietly = TRUE)) {
+      cli::cli_abort("Package {.pkg tinytable} is required to render this table.")
+    }
+    html_out <- tryCatch(
+      tinytable::save_tt(x, output = "html"),
+      error = function(e) NULL
+    )
+
+    if (is.character(html_out) && length(html_out) == 1) {
+      writeLines(html_out, con = html_file)
+      return(html_file)
+    }
+
+    if (is.character(html_out) && fs::file_exists(html_out)) {
+      return(html_out)
+    }
+
+    cli::cli_abort("Could not render tinytable to HTML.")
   }
 
   # gtsummary: convert to gt then render

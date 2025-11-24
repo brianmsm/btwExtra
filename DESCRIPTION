@@ -32,6 +32,16 @@ Imports:
 Suggests:
     chromote,
     flextable,
+    rhandsontable,
+    tinytable,
+    htmlTable,
+    formattable,
+    modelsummary,
+    table1,
+    sjPlot,
+    jsonlite,
+    xml2,
+    webshot2,
     htmlwidgets,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
