@@ -91,6 +91,28 @@ test_that("html_table_screenshot captures a PNG", {
   expect_equal(display[[2]]$mediaType, "image/png")
 })
 
+test_that("html_table_screenshot treats empty selector as default", {
+  skip_if_not_installed("webshot2")
+  skip_if_not_installed("chromote")
+  skip_if_not_installed("jsonlite")
+
+  html_tbl <- htmltools::tags$table(
+    htmltools::tags$tr(
+      htmltools::tags$td("a")
+    )
+  )
+
+  assign("tbl_htmltools_shot_empty", html_tbl, envir = .GlobalEnv)
+  on.exit(rm("tbl_htmltools_shot_empty", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_screenshot("tbl_htmltools_shot_empty", selector = "")
+  payload <- res@extra$data$screenshot
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(payload$mime, "image/png")
+  expect_true(fs::file_exists(payload$path))
+})
+
 test_that("html_table_to_df extracts reactable data from embedded JSON", {
   skip_if_not_installed("jsonlite")
 
