@@ -144,6 +144,11 @@ btwExtra_table_df <- function(x, ...) {
 }
 
 .btwExtra_try_as_data_frame <- function(x) {
+  # Skip automatic as.data.frame() on HTML-ish objects to allow HTML parsing
+  if (inherits(x, c("html", "htmltools.tag", "htmltools.tag.list"))) {
+    return(NULL)
+  }
+
   has_method <- is.data.frame(x) ||
     is.matrix(x) ||
     any(vapply(class(x), function(cls) {
@@ -458,16 +463,34 @@ btwExtra_table_df.htmlTable <- function(x, ...) {
     {
       doc <- rvest::read_html(html_file)
       table_node <- rvest::html_element(doc, "table")
+      if (inherits(table_node, "xml_missing")) {
+        table_node <- NULL
+      }
+      if (is.null(table_node)) {
+        role_node <- rvest::html_element(doc, "[role='table']")
+        if (inherits(role_node, "xml_missing")) {
+          role_node <- NULL
+        }
+        table_node <- .btwExtra_role_table_to_table(role_node)
+      }
       if (is.null(table_node)) {
         return(NULL)
       }
-      rvest::html_table(table_node)
+      if (inherits(table_node, "xml_document")) {
+        table_html <- as.character(table_node)
+        rvest::html_table(rvest::read_html(table_html))
+      } else {
+        rvest::html_table(table_node)
+      }
     },
     error = function(e) NULL
   )
 
   if (is.data.frame(df)) {
     return(list(data = df, method = "rvest::html_table", html_file = html_file))
+  }
+  if (is.list(df) && length(df) > 0 && is.data.frame(df[[1]])) {
+    return(list(data = df[[1]], method = "rvest::html_table", html_file = html_file))
   }
 
   NULL
@@ -591,6 +614,35 @@ btwExtra_table_df.htmlTable <- function(x, ...) {
   }
 
   list(selector_used = selector_used %||% "full-page", fallback_used = fallback_used)
+}
+
+.btwExtra_role_table_to_table <- function(node) {
+  if (is.null(node)) {
+    return(NULL)
+  }
+
+  rows <- xml2::xml_find_all(node, ".//*[@role='row']")
+  if (length(rows) == 0) {
+    return(NULL)
+  }
+
+  tbl <- xml2::xml_new_root("table")
+  thead <- xml2::xml_add_child(tbl, "thead")
+  tbody <- xml2::xml_add_child(tbl, "tbody")
+
+  for (row in rows) {
+    cells <- xml2::xml_find_all(row, ".//*[@role='cell' or @role='columnheader']")
+    has_header <- any(xml2::xml_attr(cells, "role") == "columnheader")
+    parent <- if (isTRUE(has_header)) thead else tbody
+    tr <- xml2::xml_add_child(parent, "tr")
+    for (cell in cells) {
+      role <- xml2::xml_attr(cell, "role")
+      tag <- if (identical(role, "columnheader")) "th" else "td"
+      xml2::xml_add_child(tr, tag, xml2::xml_text(cell))
+    }
+  }
+
+  tbl
 }
 
 .btwExtra_add_to_tools(

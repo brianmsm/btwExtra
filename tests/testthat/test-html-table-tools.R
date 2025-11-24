@@ -218,3 +218,60 @@ test_that("html_table_to_df handles htmlTable objects via HTML parse", {
   expect_equal(res@extra$data$method, "htmlTable via html")
   expect_gt(nrow(df), 0)
 })
+
+test_that("html_table_to_df parses raw HTML strings with spanners", {
+  html_str <- htmltools::HTML(
+    "<table class='multispan'>
+      <caption>Sales summary with spanners</caption>
+      <thead>
+        <tr>
+          <th rowspan='2'>Segment</th>
+          <th colspan='2'>2019</th>
+          <th colspan='2'>2020</th>
+          <th rowspan='2'>Notes</th>
+        </tr>
+        <tr>
+          <th>Sales</th><th>Margin</th>
+          <th>Sales</th><th>Margin</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Retail</td><td>120</td><td>18%</td><td>135</td><td>20%</td><td rowspan='2'>Rowspan note</td></tr>
+        <tr><td>Wholesale</td><td>300</td><td>12%</td><td>280</td><td>11%</td></tr>
+        <tr><td>Online</td><td>80</td><td>22%</td><td>95</td><td>24%</td><td>Single row note</td></tr>
+      </tbody>
+    </table>"
+  )
+
+  assign("tab_multispan_test", html_str, envir = .GlobalEnv)
+  on.exit(rm("tab_multispan_test", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_to_df("tab_multispan_test")
+  df <- res@extra$data$data
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(res@extra$data$method, "rvest::html_table")
+  expect_equal(nrow(df), 4)
+  expect_equal(ncol(df), 6)
+})
+
+test_that("html_table_to_df parses role='table' div structures", {
+  html_str <- htmltools::HTML(
+    "<div role='table' class='divtable'>
+       <div role='row' class='header'><span role='columnheader'>Item</span><span role='columnheader'>Value</span></div>
+       <div role='row'><span role='cell'>A</span><span role='cell'>10</span></div>
+       <div role='row'><span role='cell'>B</span><span role='cell'>20</span></div>
+     </div>"
+  )
+
+  assign("tab_divrole_test", html_str, envir = .GlobalEnv)
+  on.exit(rm("tab_divrole_test", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_to_df("tab_divrole_test")
+  df <- res@extra$data$data
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(res@extra$data$method, "rvest::html_table")
+  expect_equal(nrow(df), 2)
+  expect_equal(ncol(df), 2)
+})
