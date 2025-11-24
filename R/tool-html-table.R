@@ -151,34 +151,11 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
 }
 
 .btwExtra_extract_table_df <- function(x) {
-  as_df <- .btwExtra_try_as_data_frame(x)
-  if (!is.null(as_df)) {
-    return(list(data = as_df, method = "as.data.frame"))
-  }
+  btwExtra_table_df(x)
+}
 
-  handlers <- list(
-    .btwExtra_extract_gt_tbl,
-    .btwExtra_extract_gtsummary,
-    .btwExtra_extract_datatable,
-    .btwExtra_extract_reactable,
-    .btwExtra_extract_flextable
-  )
-
-  for (handler in handlers) {
-    res <- handler(x)
-    if (!is.null(res)) {
-      return(res)
-    }
-  }
-
-  html_res <- .btwExtra_extract_table_via_html(x)
-  if (!is.null(html_res)) {
-    return(html_res)
-  }
-
-  cli::cli_abort(
-    "Could not extract a data frame from object of class {.val {paste(class(x), collapse = ' / ')}}."
-  )
+btwExtra_table_df <- function(x, ...) {
+  UseMethod("btwExtra_table_df")
 }
 
 .btwExtra_try_as_data_frame <- function(x) {
@@ -198,6 +175,69 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
   )
 
   if (is.data.frame(df)) df else NULL
+}
+
+btwExtra_table_df.default <- function(x, ...) {
+  as_df <- .btwExtra_try_as_data_frame(x)
+  if (!is.null(as_df)) {
+    return(list(data = as_df, method = "as.data.frame"))
+  }
+
+  html_res <- .btwExtra_extract_table_via_html(x)
+  if (!is.null(html_res)) {
+    return(html_res)
+  }
+
+  cli::cli_abort(
+    c(
+      "Could not extract a data frame from object of class {.val {paste(class(x), collapse = ' / ')}}.",
+      "i" = "If you need support for this table class, please open an issue at https://github.com/brianmsm/btwExtra/issues"
+    )
+  )
+}
+
+btwExtra_table_df.gt_tbl <- function(x, ...) {
+  res <- .btwExtra_extract_gt_tbl(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
+}
+
+btwExtra_table_df.gtsummary <- function(x, ...) {
+  res <- .btwExtra_extract_gtsummary(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
+}
+
+btwExtra_table_df.datatables <- function(x, ...) {
+  res <- .btwExtra_extract_datatable(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
+}
+
+btwExtra_table_df.datatable <- btwExtra_table_df.datatables
+
+btwExtra_table_df.reactable <- function(x, ...) {
+  res <- .btwExtra_extract_reactable(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
+}
+
+btwExtra_table_df.reactable_htmlwidget <- btwExtra_table_df.reactable
+
+btwExtra_table_df.flextable <- function(x, ...) {
+  res <- .btwExtra_extract_flextable(x)
+  if (!is.null(res)) {
+    return(res)
+  }
+  NextMethod()
 }
 
 .btwExtra_extract_gt_tbl <- function(x) {
