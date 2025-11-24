@@ -160,7 +160,8 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
     .btwExtra_extract_gt_tbl,
     .btwExtra_extract_gtsummary,
     .btwExtra_extract_datatable,
-    .btwExtra_extract_reactable
+    .btwExtra_extract_reactable,
+    .btwExtra_extract_flextable
   )
 
   for (handler in handlers) {
@@ -319,6 +320,23 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
   NULL
 }
 
+.btwExtra_extract_flextable <- function(x) {
+  if (!inherits(x, "flextable")) {
+    return(NULL)
+  }
+
+  data <- tryCatch(
+    x[["body"]][["dataset"]],
+    error = function(e) NULL
+  )
+
+  if (is.data.frame(data)) {
+    return(list(data = data, method = "flextable body dataset"))
+  }
+
+  NULL
+}
+
 .btwExtra_extract_table_via_html <- function(x) {
   html_file <- tryCatch(
     .btwExtra_render_table_html(x),
@@ -372,6 +390,18 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
       htmltools::save_html(htmltools::HTML(html), file = html_file)
       return(html_file)
     }
+  }
+
+  # flextable: use save_as_html
+  if (inherits(x, "flextable")) {
+    if (!requireNamespace("flextable", quietly = TRUE)) {
+      cli::cli_abort("Package {.pkg flextable} is required to render this table.")
+    }
+    tryCatch(
+      flextable::save_as_html(x, path = html_file),
+      error = function(e) cli::cli_abort("Could not render flextable to HTML: {conditionMessage(e)}")
+    )
+    return(html_file)
   }
 
   # gtsummary: convert to gt then render

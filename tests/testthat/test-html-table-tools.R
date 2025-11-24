@@ -134,3 +134,19 @@ test_that("html_table_to_df extracts reactable data from embedded JSON", {
   expect_equal(dim(extracted), dim(df))
   expect_equal(colnames(extracted), colnames(df))
 })
+
+test_that("html_table_to_df extracts flextable dataset", {
+  skip_if_not_installed("flextable")
+
+  ft <- flextable::flextable(head(mtcars))
+  assign("tab_flextable", ft, envir = .GlobalEnv)
+  on.exit(rm("tab_flextable", envir = .GlobalEnv), add = TRUE)
+
+  res <- btwExtra_tool_html_table_to_df("tab_flextable")
+  df <- res@extra$data$data
+
+  expect_true(any(grepl("BtwExtraToolResult", class(res))))
+  expect_equal(res@extra$data$method, "flextable body dataset")
+  expect_equal(nrow(df), 6)
+  expect_true(all(colnames(df) %in% colnames(mtcars)))
+})
