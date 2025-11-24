@@ -3,5 +3,7 @@
 export(btwExtra_default_tools)
 export(btwExtra_mcp_server)
 export(btwExtra_tool_env_run_r_code)
+export(btwExtra_tool_html_table_screenshot)
+export(btwExtra_tool_html_table_to_df)
 export(btwExtra_tools)
 if (getRversion() < "4.3.0") importFrom("S7", "@")

@@ -26,15 +26,74 @@ This package extends the {btw} toolset with extra MCP tools. It is designed to b
 - Use `btwExtra_default_tools()` to combine `btw::btw_tools()` and `btwExtra_tools()`.
 - `btwExtra_mcp_server()` wraps `btw::btw_mcp_server(tools = btwExtra_default_tools())`.
 
-## Plots/HTML output strategy (planned)
-- Observed pattern (posit databots extension): when executing code, it calls a runtime-level plot capture (e.g., `getCurrentPlotUri()`), returns `{data: <png-uri>, mimeType: "image/png"}`, and tool results support a “media” part (base64 + mime).
-- btwExtra plan:
-  - Extend `btwExtra_tool_env_run_r_code_impl()` with optional plot capture (`capture_plot`, `plot_width/height/res`). Default: capture plots.
-  - Capture via R device: open `png()` to a temp file, eval code, `dev.off()` on exit, read PNG, base64-encode, attach as `extra$data$plot` with `mime = "image/png"`, and add a “media” content entry for clients that render images.
-  - Add a brief textual hint (“Plot captured (PNG)”) when a plot is present; keep text truncation behavior unchanged.
-  - If `capture_plot = FALSE` or no plot is drawn, omit plot data.
-  - Testing: simple plot produces non-empty PNG base64; `capture_plot = FALSE` omits plot; errors handled gracefully.
-  - Future: similar pattern for HTML outputs (gt/htmlwidgets): capture rendered HTML and optionally a PNG snapshot for media-capable clients.
+## HTML / table / report roadmap for btwExtra
+
+The following phases describe how btwExtra will gradually add support for HTML tables, reports and interactive outputs. This file is only a **high-level map**; each phase will later get its own, more detailed prompt.
+
+### Phase 1 – HTML tables
+
+**1A. Table content (data frame view)**  
+- Goal: when a table object already exists in R (e.g. `gt`, `gtsummary`, `DT`, `reactable`, etc.), expose its **data content** as a normal data frame / JSON so the model can reason about it.  
+- Behaviour: detect common HTML table classes, convert them to `data.frame`/`tibble` (via existing methods or a generic HTML fallback), and return either a compact preview or a structured JSON description.  
+- Usage: use these tools when the user cares about *what* is in the table (values, columns, missingness, summaries), not formatting.
+
+**1B. Table screenshots (visual inspection)**  
+- Goal: when the user cares about **styling/layout** (headers, fonts, alignment, zebra stripes, etc.), capture a screenshot of the HTML table.  
+- Behaviour: render the table to a temporary HTML file, screenshot it (e.g. `webshot2`), and return:
+  - a `media` entry (PNG) for clients that render images, and  
+  - a temporary PNG path for CLIs that can only open files.  
+- Usage: use when the user asks “does this table look right?” or wants visual confirmation of formatting.
+
+### Phase 2 – Quarto / R Markdown reports
+
+**2A. Render + logs**  
+- Goal: provide a clear story for rendering `.qmd` / `.Rmd` and checking whether the build succeeded.  
+- Behaviour: high-level “render report” tool that calls `quarto::quarto_render()` or `rmarkdown::render()`, captures logs, and returns:
+  - success/failure status,  
+  - output paths,  
+  - collected errors/warnings/messages.  
+- Usage: use when the user says “render this report” or “why is my Quarto/Rmd failing?”.
+
+**2B. Knit code in a separate environment**  
+- Goal: run document code to create objects without polluting `.GlobalEnv`.  
+- Behaviour: knit with `knitr::knit()` into a temporary `.md` using a fresh environment, expose an `env_id` plus a summary of objects created.  
+- Usage: use when you need access to objects produced by a report, but the user doesn’t want them in their global workspace. Combine with `run_r_code` if the user later wants to copy objects into `.GlobalEnv`.
+
+**2C. Report screenshots**  
+- Goal: visually inspect the rendered HTML report (overall or specific sections).  
+- Behaviour: screenshot the HTML output (full page or by selector/anchor) using the same pipeline as Phase 1B, returning media + PNG path.  
+- Usage: use when the user wants to check layout, themes, header/footer appearance, or a specific section of the report.
+
+### Phase 3 – Widgets, apps and slides
+
+**3A. Static widgets (HTML widgets, maps, interactive plots)**  
+- Goal: inspect how interactive widgets *look* (legends, axes, labels, map tiles, etc.) even if full interactivity is not exercised.  
+- Behaviour: save widget to temporary HTML (`htmlwidgets::saveWidget()`), then screenshot it like any other HTML.  
+- Usage: use when the user wants visual verification of a widget’s appearance.
+
+**3B. Shiny apps, interactive sites, and HTML slides**  
+- Goal: define how to combine R-side tools with browser automation (e.g. Playwright MCP) for apps and slide decks.  
+- Behaviour:
+  - Slides (revealjs/xaringan/Quarto): treat them as HTML reports – render, then screenshot selected slides/sections.  
+  - Shiny apps:  
+    - R-side tools help detect app structure and show how to run it (`shiny::runApp`).  
+    - Functional testing (clicks, tabs, inputs) is delegated to browser-automation MCPs (Playwright); recommend `shinytest2` for reproducible tests.  
+- Usage: use R tools for structure + basic screenshots; use Playwright MCP when real interaction is required.
+
+### Tool descriptions (for every phase)
+
+For each new tool added in these phases, its `description` should clearly state:
+
+- **When to use it**  
+  - e.g., “Use this for table content, not for styling” or “Use this for rendered HTML, not for raw R objects”.
+- **What it returns**  
+  - e.g., “Returns a preview data frame”, “Returns a JSON summary”, “Returns a PNG media entry and a temporary PNG path”.
+- **How to combine it with other tools**  
+  - e.g., “Prefer this over `run_r_code` for data frame inspection”,  
+  - “Use with `btwExtra_tool_env_run_r_code` for custom summaries”,  
+  - “Use together with Playwright MCP for interactive Shiny behaviour”.
+
+A more detailed prompt for each phase will be added as those features are implemented; this section is only the high-level roadmap for the model.
 
 ## Style and docs
 - Keep documentation and comments in English.
