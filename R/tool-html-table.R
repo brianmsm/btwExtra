@@ -5,7 +5,9 @@
 #' connected R session and expose it as a data frame (and JSON-friendly list).
 #' Use this when you care about the table *values* (rows/columns/missingness),
 #' not styling. For styling/layout, use the screenshot tool instead.
-#'
+#' @importFrom gt as_raw_html
+#' @importFrom gtsummary as_tibble as_gt
+#' 
 #' @param object_name Name of the object in the current R session that holds
 #'   the HTML table (e.g. `\"tbl_gt\"`).
 #' @param max_preview_rows Maximum number of rows to show in the textual
@@ -139,6 +141,18 @@ btwExtra_tool_html_table_screenshot_impl <- function(object_name,
   btwExtra_table_df(x)
 }
 
+#' Internal generic: extract table-like objects to data frames
+#'
+#' Converts a supported table object to a data frame result list with method
+#' metadata. Used by the HTML table tools; not intended for direct end-user
+#' calls.
+#'
+#' @param x Object to extract.
+#' @param ... Passed along to methods.
+#'
+#' @return A list with `data` and `method` entries.
+#' @keywords internal
+#' @export
 btwExtra_table_df <- function(x, ...) {
   UseMethod("btwExtra_table_df")
 }
@@ -167,6 +181,7 @@ btwExtra_table_df <- function(x, ...) {
   if (is.data.frame(df)) df else NULL
 }
 
+#' @export
 btwExtra_table_df.default <- function(x, ...) {
   as_df <- .btwExtra_try_as_data_frame(x)
   if (!is.null(as_df)) {
@@ -186,6 +201,7 @@ btwExtra_table_df.default <- function(x, ...) {
   )
 }
 
+#' @export
 btwExtra_table_df.gt_tbl <- function(x, ...) {
   res <- .btwExtra_extract_gt_tbl(x)
   if (!is.null(res)) {
@@ -194,6 +210,7 @@ btwExtra_table_df.gt_tbl <- function(x, ...) {
   NextMethod()
 }
 
+#' @export
 btwExtra_table_df.gtsummary <- function(x, ...) {
   res <- .btwExtra_extract_gtsummary(x)
   if (!is.null(res)) {
@@ -202,6 +219,7 @@ btwExtra_table_df.gtsummary <- function(x, ...) {
   NextMethod()
 }
 
+#' @export
 btwExtra_table_df.datatables <- function(x, ...) {
   res <- .btwExtra_extract_datatable(x)
   if (!is.null(res)) {
@@ -210,8 +228,10 @@ btwExtra_table_df.datatables <- function(x, ...) {
   NextMethod()
 }
 
+#' @export
 btwExtra_table_df.datatable <- btwExtra_table_df.datatables
 
+#' @export
 btwExtra_table_df.reactable <- function(x, ...) {
   res <- .btwExtra_extract_reactable(x)
   if (!is.null(res)) {
@@ -220,8 +240,10 @@ btwExtra_table_df.reactable <- function(x, ...) {
   NextMethod()
 }
 
+#' @export
 btwExtra_table_df.reactable_htmlwidget <- btwExtra_table_df.reactable
 
+#' @export
 btwExtra_table_df.flextable <- function(x, ...) {
   res <- .btwExtra_extract_flextable(x)
   if (!is.null(res)) {
@@ -230,6 +252,7 @@ btwExtra_table_df.flextable <- function(x, ...) {
   NextMethod()
 }
 
+#' @export
 btwExtra_table_df.rhandsontable <- function(x, ...) {
   res <- .btwExtra_extract_rhandsontable(x)
   if (!is.null(res)) {
@@ -238,6 +261,7 @@ btwExtra_table_df.rhandsontable <- function(x, ...) {
   NextMethod()
 }
 
+#' @export
 btwExtra_table_df.tinytable <- function(x, ...) {
   res <- .btwExtra_extract_tinytable(x)
   if (!is.null(res)) {
@@ -246,6 +270,7 @@ btwExtra_table_df.tinytable <- function(x, ...) {
   NextMethod()
 }
 
+#' @export
 btwExtra_table_df.htmlTable <- function(x, ...) {
   res <- .btwExtra_extract_htmltable(x)
   if (!is.null(res)) {
